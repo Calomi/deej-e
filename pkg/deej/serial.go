@@ -289,8 +289,10 @@ func (sio *SerialIO) handleLine(logger *zap.SugaredLogger, line string) {
 		}
 
 		// check if it changes the desired state (could just be a jumpy raw slider value)
-		if util.SignificantlyDifferent(sio.currentSliderPercentValues[sliderIdx], normalizedScalar, sio.deej.config.NoiseReductionLevel) {
-
+		if !util.IsNoiseFilter(&sio.stableCount, &sio.oneLastSeen, &sio.secondLastSeen, sliderIdx, normalizedScalar, sio.deej.config.NoiseReductionLevel) {
+			if !util.SignificantlyDifferent(sio.currentSliderPercentValues[sliderIdx], normalizedScalar, sio.deej.config.NoiseReductionLevel) {
+				continue
+			}
 			// if it does, update the saved value and create a move event
 			sio.currentSliderPercentValues[sliderIdx] = normalizedScalar
 
