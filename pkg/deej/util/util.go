@@ -85,8 +85,9 @@ func NormalizeScalar(v float32) float32 {
 func SignificantlyDifferent(old float32, new float32, noiseReductionLevel string) bool {
 
 	const (
-		noiseReductionHigh = "high"
-		noiseReductionLow  = "low"
+		noiseReductionHigh    = "high"
+		noiseReductionLow     = "low"
+		noiseReductionPrecise = "precise"
 	)
 
 	// this threshold is solely responsible for dealing with hardware interference when
@@ -101,6 +102,9 @@ func SignificantlyDifferent(old float32, new float32, noiseReductionLevel string
 		break
 	case noiseReductionLow:
 		significantDifferenceThreshold = 0.015
+		break
+	case noiseReductionPrecise:
+		significantDifferenceThreshold = 0.005
 		break
 	default:
 		significantDifferenceThreshold = 0.025
