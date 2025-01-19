@@ -31,6 +31,9 @@ type SerialIO struct {
 
 	lastKnownNumSliders        int
 	currentSliderPercentValues []float32
+	stableCount                []float32
+	oneLastSeen                []float32
+	secondLastSeen             []float32
 
 	sliderMoveConsumers []chan SliderMoveEvent
 }
@@ -247,10 +250,16 @@ func (sio *SerialIO) handleLine(logger *zap.SugaredLogger, line string) {
 		logger.Infow("Detected sliders", "amount", numSliders)
 		sio.lastKnownNumSliders = numSliders
 		sio.currentSliderPercentValues = make([]float32, numSliders)
+		sio.stableCount = make([]float32, numSliders)
+		sio.oneLastSeen = make([]float32, numSliders)
+		sio.secondLastSeen = make([]float32, numSliders)
 
 		// reset everything to be an impossible value to force the slider move event later
 		for idx := range sio.currentSliderPercentValues {
 			sio.currentSliderPercentValues[idx] = -1.0
+			sio.stableCount[idx] = -1.0
+			sio.oneLastSeen[idx] = -1.0
+			sio.secondLastSeen[idx] = -1.0
 		}
 	}
 
