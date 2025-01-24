@@ -225,6 +225,20 @@ func (sf *wcaSessionFinder) getMasterSession(mmDevice *wca.IMMDevice, key string
 
 	var audioEndpointVolume *wca.IAudioEndpointVolume
 
+	if err := ole.CoInitializeEx(0, ole.COINIT_APARTMENTTHREADED); err != nil {
+		const eFalse = 1
+		oleError := &ole.OleError{}
+		if errors.As(err, &oleError) {
+			if oleError.Code() == eFalse {
+				sf.logger.Warn("CoInitializeEx failed with E_FALSE due to redundant invocation on getMasterSession")
+			} else {
+				sf.logger.Warnw("Failed to initialize COM for master session", "error", err)
+				fmt.Errorf("initialize COM on getMasterSession: %w", err)
+			}
+		}
+	}
+	defer ole.CoUninitialize()
+
 	if err := mmDevice.Activate(wca.IID_IAudioEndpointVolume, wca.CLSCTX_ALL, nil, &audioEndpointVolume); err != nil {
 		sf.logger.Warnw("Failed to activate AudioEndpointVolume for master session", "error", err)
 		return nil, fmt.Errorf("activate master session: %w", err)
