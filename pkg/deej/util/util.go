@@ -85,8 +85,9 @@ func NormalizeScalar(v float32) float32 {
 func SignificantlyDifferent(old float32, new float32, noiseReductionLevel string) bool {
 
 	const (
-		noiseReductionHigh = "high"
-		noiseReductionLow  = "low"
+		noiseReductionHigh    = "high"
+		noiseReductionLow     = "low"
+		noiseReductionPrecise = "precise"
 	)
 
 	// this threshold is solely responsible for dealing with hardware interference when
@@ -101,6 +102,9 @@ func SignificantlyDifferent(old float32, new float32, noiseReductionLevel string
 		break
 	case noiseReductionLow:
 		significantDifferenceThreshold = 0.015
+		break
+	case noiseReductionPrecise:
+		significantDifferenceThreshold = 0.005
 		break
 	default:
 		significantDifferenceThreshold = 0.025
@@ -123,4 +127,34 @@ func SignificantlyDifferent(old float32, new float32, noiseReductionLevel string
 // a helper to make sure volume snaps correctly to 0 and 100, where appropriate
 func almostEquals(a float32, b float32) bool {
 	return math.Abs(float64(a-b)) < 0.000001
+}
+
+// IsNoiseFilter is a filter that determines if a new value is noise
+// we check for the last 2 values for the given slider
+func IsNoiseFilter(stableCount *[]float32, oneLastSeen *[]float32, secondLastSeen *[]float32, sliderIdx int, new float32, noiseReductionLevel string) bool {
+	isNoise := false
+	if new != (*secondLastSeen)[sliderIdx] {
+		isNoise = false
+		(*stableCount)[sliderIdx] = 0
+		if new != (*oneLastSeen)[sliderIdx] {
+			(*secondLastSeen)[sliderIdx] = (*oneLastSeen)[sliderIdx]
+			(*oneLastSeen)[sliderIdx] = new
+		} else {
+			// nothing, we want to keep the second last value, because the hardware is most likely to be noisy from the direction the last it came
+			// and this prevents a noise with a longer wave like: 2,2,2,2, 3,3,3,3, 2,2,2,2, 3,3,3,3
+		}
+	} else {
+		if (*stableCount)[sliderIdx] <= 10 {
+			// if the noise have a wave length greater than 10, it will't be considered noise
+			// but if we increase this number, we will get more delay to change for example to 3 from 2 if previous value was 3
+			isNoise = true
+			(*stableCount)[sliderIdx] += 1
+		} else {
+			isNoise = false
+			(*secondLastSeen)[sliderIdx] = (*oneLastSeen)[sliderIdx]
+			(*oneLastSeen)[sliderIdx] = new
+			(*stableCount)[sliderIdx] = 0
+		}
+	}
+	return isNoise
 }
