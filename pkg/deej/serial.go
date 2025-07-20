@@ -227,7 +227,9 @@ func (sio *SerialIO) readLine(logger *zap.SugaredLogger, reader *bufio.Reader) c
 					logger.Warnw("Failed to read line from serial", "error", err, "line", line)
 				}
 
-				// just ignore the line, the read loop will stop after this
+				// Si hay un error de lectura, intentamos reconectar
+				sio.handleDisconnect(logger)
+				// si logramos reconectar, retornamos aquí de todas formas, pues el sio.Start levantará un thread nuevo con este loop
 				return
 			}
 
