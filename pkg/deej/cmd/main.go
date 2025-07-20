@@ -1,10 +1,14 @@
 package main
 
 import (
+	"errors"
 	"flag"
 	"fmt"
 
 	"github.com/omriharel/deej/pkg/deej"
+
+	ole "github.com/go-ole/go-ole"
+	//wca "github.com/moutend/go-wca"
 )
 
 var (
@@ -41,6 +45,31 @@ func main() {
 	if verbose {
 		named.Debug("Verbose flag provided, all log messages will be shown")
 	}
+
+	// Initialize COM first to avoid issues with session finder initialization in session_finder_windows.go#L166
+	// it could be above the logger creation
+	if err := ole.CoInitializeEx(0, ole.COINIT_APARTMENTTHREADED); err != nil {
+		// Ignore E_FALSE as it means it's already initialized
+		const eFalse = 1
+		oleError := &ole.OleError{}
+		fmt.Printf("OleError: %+v\n", oleError)
+
+		if errors.As(err, &oleError) {
+			if oleError.Code() == eFalse {
+				fmt.Println("CoInitializeEx in main failed with E_FALSE due to redundant invocation")
+			} else {
+				fmt.Println("Error al llamar CoInitializeEx en main:",
+					"isOleError", true,
+					"error", err,
+					"oleError", oleError)
+
+				fmt.Errorf("call CoInitializeEx: %w", err)
+			}
+		} else {
+			panic(fmt.Sprintf("Failed to call CoInitializeEx in main: %v", err))
+		}
+	}
+	defer ole.CoUninitialize()
 
 	// create the deej instance
 	d, err := deej.NewDeej(logger, verbose)
