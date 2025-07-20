@@ -243,6 +243,30 @@ func (sio *SerialIO) readLine(logger *zap.SugaredLogger, reader *bufio.Reader) c
 	return ch
 }
 
+func (sio *SerialIO) handleDisconnect(logger *zap.SugaredLogger) {
+	// TODO esto podría ser una config
+	const maxRetries = 0               // 0 significa intentos infinitos
+	const retryDelay = 2 * time.Second // Delay entre intentos
+	retries := 0
+
+	for maxRetries == 0 || retries < maxRetries {
+		logger.Infow("Intentando reconectar al Arduino...", "intento", retries+1)
+		sio.refreshArduino()
+
+		if sio.connected {
+			logger.Info("Reconexión exitosa al Arduino")
+			return
+		}
+		if sio.deej.Verbose() {
+			logger.Warnw("Fallo al reconectar", "intento", retries+1)
+		}
+		retries++
+		time.Sleep(retryDelay) // Esperamos antes del siguiente intento
+	}
+
+	logger.Error("No se pudo reconectar al Arduino después de múltiples intentos")
+}
+
 func (sio *SerialIO) handleLine(logger *zap.SugaredLogger, line string) {
 
 	// this function receives an unsanitized line which is guaranteed to end with LF,
