@@ -18,9 +18,6 @@ import (
 
 // SerialIO provides a deej-aware abstraction layer to managing serial I/O
 type SerialIO struct {
-	comPort  string
-	baudRate uint
-
 	deej   *Deej
 	logger *zap.SugaredLogger
 
@@ -121,6 +118,7 @@ func (sio *SerialIO) Start() error {
 			select {
 			case <-sio.stopChannel:
 				sio.close(namedLogger)
+				return
 			case line := <-lineChannel:
 				sio.handleLine(namedLogger, line)
 			}
